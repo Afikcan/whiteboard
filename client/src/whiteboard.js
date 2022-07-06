@@ -1,13 +1,17 @@
-import io from "socket.io-client"
-import { meetingSession } from "./App"
-const socket = io.connect("http://localhost:3001")
-
 const sendMessage = (topic, data, lifetimeMs, audioVideo) => {
     audioVideo.realtimeSendDataMessage(topic, data, lifetimeMs)
   }
+// _______________
+// Canvas-Designer
 
-//*------------------------------------------------------------------------------------------------------------------------------------------------------------- *//
-export function CanvasDesigner() {
+// Open-Sourced: https://github.com/muaz-khan/Canvas-Designer
+
+// --------------------------------------------------
+// Muaz Khan     - www.MuazKhan.com
+// MIT License   - www.WebRTC-Experiment.com/licence
+// --------------------------------------------------
+
+export default function CanvasDesigner() {
     var designer = this;
     designer.iframe = null;
 
@@ -61,7 +65,6 @@ export function CanvasDesigner() {
     var selectedIcon = 'pencil';
 
     function syncData(data) {
-        console.log("syncData")
         if (!designer.iframe) return;
 
         designer.postMessage({
@@ -74,43 +77,9 @@ export function CanvasDesigner() {
     var captureStreamCallback = function() {};
 
     function onMessage(event) {
-        console.log("On Message")
-
-        if (!event.data || event.data.uid !== designer.uid){
-            if(!!event.data.canvasDesignerSyncData){
-                console.log("sending data...")
-                sendMessage("drawing", event.data.canvasDesignerSyncData, 50000, meetingSession.audioVideo)
-                return;
-            }
-            return;
-        } 
-
-        if(!!event.data.sdp) {
-            /*
-            webrtcHandler.createAnswer(event.data, function(response) {
-                if(response.sdp) {
-                    console.log("bak bu response")
-                    console.log(response)
-                    designer.postMessage(response);
-                    return;
-                }
-
-                captureStreamCallback(response.stream);
-            });
-            */
-            return;
-        }
-
         if (!!event.data.canvasDesignerSyncData) {
             designer.pointsLength = event.data.canvasDesignerSyncData.points.length;
             syncDataListener(event.data.canvasDesignerSyncData);
-
-            sendMessage("drawing", event.data.canvasDesignerSyncData, 50000, meetingSession.audioVideo)
-            return;
-        }
-
-        if (!!event.data.dataURL) {
-            dataURLListener(event.data.dataURL);
             return;
         }
     }
@@ -214,7 +183,7 @@ export function CanvasDesigner() {
 
     designer.postMessage = function(message) {
         if (!designer.iframe) return;
-        console.log(message)
+
         message.uid = designer.uid;
         designer.iframe.contentWindow.postMessage(message, '*');
     };
@@ -246,19 +215,4 @@ export function CanvasDesigner() {
 
     designer.widgetHtmlURL = 'widget.html';
     designer.widgetJsURL = 'widget.min.js';
-
-    console.log("I'm created NOW!")
 }
-//*------------------------------------------------------------------------------------------------------------------------------------------------------------- *//
-
-/*
-var designer = new CanvasDesigner();
-
-designer.widgetHtmlURL = 'https://www.webrtc-experiment.com/Canvas-Designer/widget.html';
-designer.widgetJsURL = 'https://www.webrtc-experiment.com/Canvas-Designer/widget.js';
-
-//yarattığım whiteboard objesini yarattığım div'e eklemek için
-designer.appendTo(document.getElementById('whiteboard-frame') || document.documentElement);
-*/
-
-export default CanvasDesigner;

@@ -1,7 +1,7 @@
 import './App.css';
 import io from "socket.io-client"
 import CanvasDesigner from "./whiteboard"
-import {useEffect, useState} from 'react'
+import { useEffect, useState } from 'react'
 import {
   ConsoleLogger,
   DefaultDeviceController,
@@ -13,8 +13,8 @@ import {
 let logger
 let deviceController
 let configuration
-export let meetingSession
 let observer
+let meetingSession
 
 const socket = io.connect("http://localhost:3001")
 
@@ -32,16 +32,28 @@ let drawing_data = {
   }
 }
 
+let drawing = {
+  points: [],
+  startIndex: 0
+}
+
 function App() {
   const [meetingResponse, setMeetingResponse] = useState({})
   const [attendeeResponse, setAttendeeResponse] = useState({})
-  
 
-  const receiveDataMessageHandler = (data) =>{
+
+  const receiveDataMessageHandler = (data) => {
     console.log("realtimeSubscribeToReceiveDataMessage")
     data = JSON.parse(new TextDecoder().decode(data.data))
     console.log(data)
-    designer.syncData(data)
+
+    if(data.state === "drawing"){
+      drawing.points.push(data.point)
+    }else if(data.state === "end"){
+      drawing.startIndex = data.startIndex
+      designer.syncData(drawing)
+      drawing.points = []
+    }
   }
 
   const sendMessage = (topic, data, lifetimeMs, audioVideo) => {
@@ -56,10 +68,25 @@ function App() {
     }
   }
 
+  useEffect(() => {
+    designer.addSyncListener(function (data) {
+      data.points.forEach(d=>{
+        sendMessage("drawing", {
+          state: "drawing",
+          point: d
+        }, 50000, meetingSession.audioVideo)
+      });
+      sendMessage("drawing", {
+        state: "end",
+        startIndex: data.startIndex
+      }, 50000, meetingSession.audioVideo)
+    });
+  }, []);
+
 
   useEffect(() => {
     socket.on("sendConfigs", (data) => {
-      setAttendeeResponse(data.attendeeResponse) 
+      setAttendeeResponse(data.attendeeResponse)
       setMeetingResponse(data.meetingResponse)
 
       console.log("Sent the configs")
@@ -73,7 +100,7 @@ function App() {
     console.log(attendeeResponse)
   })
 
-  let main = async() => {
+  let main = async () => {
     console.log("After we got in main")
     console.log(attendeeResponse)
 
@@ -94,7 +121,7 @@ function App() {
       deviceController
     );
     console.log("MEETINGSESSION")
-    console.log(typeof(meetingSession.audioVideo))
+    console.log(typeof (meetingSession.audioVideo))
     console.log(meetingSession.audioVideo)
 
     observer = {
@@ -112,14 +139,14 @@ function App() {
         }
       }
     };
-    
+
     meetingSession.audioVideo.addObserver(observer);
     await meetingSession.audioVideo.start();
 
 
     //sendMessage("chit-chat", 'hi mate', 50000)
     //getMessage('chit-chat', meetingSession.audioVideo)
-    
+
     /*
     var paramsListAttendees = {
       MeetingId: meetingResponse.Meeting.MeetingId, 
@@ -134,10 +161,10 @@ function App() {
     <div className="App">
       <h1>Mounted</h1>
       <button onClick={() => {
-        sendMessage(drawing_data.topic,  JSON.stringify(drawing_data), 50000, meetingSession.audioVideo)
+        sendMessage(drawing_data.topic, JSON.stringify(drawing_data), 50000, meetingSession.audioVideo)
       }}>SEND A MESSAGE</button>
       <button onClick={() => {
-          getMessage(drawing_data.topic, meetingSession.audioVideo)
+        getMessage(drawing_data.topic, meetingSession.audioVideo)
       }}>GET A MESSAGE</button>
     </div>
   );
