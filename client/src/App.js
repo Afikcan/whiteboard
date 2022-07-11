@@ -22,33 +22,30 @@ var designer = new CanvasDesigner();
 designer.widgetHtmlURL = 'https://www.webrtc-experiment.com/Canvas-Designer/widget.html';
 designer.widgetJsURL = 'https://www.webrtc-experiment.com/Canvas-Designer/widget.js';
 
-//yarattığım whiteboard objesini yarattığım div'e eklemek için
 designer.appendTo(document.getElementById('whiteboard-frame') || document.documentElement);
 
-let drawing_data = {
-  topic: "drawing",
-  data: {
-
-  }
-}
 
 let drawing = {
   points: [],
   startIndex: 0
 }
 
+
 function App() {
+  
+
   const [meetingResponse, setMeetingResponse] = useState({})
   const [attendeeResponse, setAttendeeResponse] = useState({})
 
 
   const receiveDataMessageHandler = (data) => {
-    console.log("realtimeSubscribeToReceiveDataMessage")
     data = JSON.parse(new TextDecoder().decode(data.data))
-    console.log(data)
 
     if(data.state === "drawing"){
-      drawing.points.push(data.point)
+      //drawing.points.push(data.point) Pushwant
+      for(let i = 0; i < data.points.length;  i++ ){
+        drawing.points.push(data.points[i])
+      }
     }else if(data.state === "end"){
       drawing.startIndex = data.startIndex
       designer.syncData(drawing)
@@ -70,6 +67,37 @@ function App() {
 
   useEffect(() => {
     designer.addSyncListener(function (data) {
+
+      /*
+      if(data.points[data.points.length-1][0] === "image" || "pdf"){
+        //let state = console.log(data.points[data.points.length-1][0])
+        console.log(data.points[data.points.length-1])
+        /*
+        sendMessage(state, {
+          state,
+          points: data.points[data.points.length-1], //for images we just wanna send last point 
+        }, 50000, meetingSession.audioVideo)
+        
+      }
+      */
+      
+      let chunkSize = 7
+      let chunkNum = Math.ceil(data.points.length/chunkSize) 
+
+      for(let i = 0; i < chunkNum; i++){
+        let points = data.points.splice(0,chunkSize)
+        sendMessage("drawing", {
+          state: "drawing",
+          points,
+        }, 50000, meetingSession.audioVideo)
+      }
+      sendMessage("drawing", {
+        state: "end",
+        startIndex: data.startIndex
+      }, 50000, meetingSession.audioVideo)
+      
+      /*
+      Pushwant
       data.points.forEach(d=>{
         sendMessage("drawing", {
           state: "drawing",
@@ -80,6 +108,7 @@ function App() {
         state: "end",
         startIndex: data.startIndex
       }, 50000, meetingSession.audioVideo)
+      */
     });
   }, []);
 
@@ -88,16 +117,8 @@ function App() {
     socket.on("sendConfigs", (data) => {
       setAttendeeResponse(data.attendeeResponse)
       setMeetingResponse(data.meetingResponse)
-
-      console.log("Sent the configs")
-      console.log("DATA:")
-      console.log(meetingResponse)
-      console.log(attendeeResponse)
     })
     main()
-    console.log("After configs are sent")
-    console.log(meetingResponse)
-    console.log(attendeeResponse)
   })
 
   let main = async () => {
@@ -105,12 +126,8 @@ function App() {
     console.log(attendeeResponse)
 
     logger = new ConsoleLogger('MyLogger', LogLevel.INFO);
-    //console.log('-----------logger-----------')
-    //console.log(logger)
 
     deviceController = new DefaultDeviceController(logger);
-    //console.log('-----------deviceController-----------')
-    //console.log(deviceController)
 
     configuration = new MeetingSessionConfiguration(meetingResponse, attendeeResponse);
 
@@ -142,17 +159,6 @@ function App() {
 
     meetingSession.audioVideo.addObserver(observer);
     await meetingSession.audioVideo.start();
-
-
-    //sendMessage("chit-chat", 'hi mate', 50000)
-    //getMessage('chit-chat', meetingSession.audioVideo)
-
-    /*
-    var paramsListAttendees = {
-      MeetingId: meetingResponse.Meeting.MeetingId, 
-      MaxResults: '5',
-    };*/
-    //socket.emit("listAttendees", paramsListAttendees)
   }
 
 
@@ -161,10 +167,10 @@ function App() {
     <div className="App">
       <h1>Mounted</h1>
       <button onClick={() => {
-        sendMessage(drawing_data.topic, JSON.stringify(drawing_data), 50000, meetingSession.audioVideo)
+        sendMessage("drawing", JSON.stringify(drawing), 50000, meetingSession.audioVideo)
       }}>SEND A MESSAGE</button>
       <button onClick={() => {
-        getMessage(drawing_data.topic, meetingSession.audioVideo)
+        getMessage("drawing", meetingSession.audioVideo)
       }}>GET A MESSAGE</button>
     </div>
   );
