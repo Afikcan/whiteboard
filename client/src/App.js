@@ -34,8 +34,6 @@ let allDrawings = {
   startIndex: 0
 }
 
-let startIndexStock = 0
-
 let base64EncodedStr
 
 function App() {
@@ -55,7 +53,19 @@ function App() {
         
         allDrawings.points.push(data.points[i])
       }
-    }else if(data.state === "image"){
+    }else if(data.state === "end"){
+
+      console.log("TOTALLY SAME DATA STRUCTURE")
+      console.log(allDrawings)
+
+      drawing.startIndex = data.startIndex
+      allDrawings.startIndex = drawing.startIndex
+
+      designer.syncData(drawing)
+      drawing.points = []
+    }
+
+    if(data.state === "image"){
 
       fetch(data.link)
       .then( response => response.blob() )
@@ -74,24 +84,22 @@ function App() {
             array.push(data.state)
             array.push(array_location)
             array.push(data.configs)
-          
-            allDrawings.points.push(array)
 
-            console.log("TOTALLY SAME DATA STRUCTURE")
-            console.log(allDrawings)
+
+            if(allDrawings.startIndex === data.startIndex){
+              console.log("DUDE, THEY HAVE SAME STARTINDEX!!!")
+              allDrawings.points[allDrawings.points.length-1] = array
+            }else{
+              allDrawings.points.push(array)
+              allDrawings.startIndex = data.startIndex
+            }
+            designer.syncData(allDrawings)
+
+            //allDrawings.startIndex = allDrawings.startIndex + 1
             };
           reader.readAsDataURL(blob);
       }).catch(err => {})
       
-    }else if(data.state === "end"){
-
-      console.log("TOTALLY SAME DATA STRUCTURE")
-      console.log(allDrawings)
-
-      drawing.startIndex = data.startIndex
-
-      designer.syncData(drawing)
-      drawing.points = []
     }
     
   }
@@ -110,16 +118,10 @@ function App() {
     }
   }
 
-  function delay(time) {
-    return new Promise(resolve => setTimeout(resolve, time));
-  }
-
   useEffect(() => {
     designer.addSyncListener(function (data) {
+
       if(data.points[data.points.length-1][0] === "image" || data.points[data.points.length-1][0] === "pdf"){
-
-        
-
         
         // I send my data img to backend to upload it my S3bucket
         socket.emit("sendFile", data.points[data.points.length-1][1][0])
@@ -130,11 +132,10 @@ function App() {
             state: "image",
             link,
             location: data.points[data.points.length-1][1].splice(1,6),
-            configs: data.points[data.points.length-1][2]
+            configs: data.points[data.points.length-1][2],
+            startIndex: data.points.length - 1
           }, 50000, meetingSession.audioVideo)
         })
-        data.startIndex = startIndexStock
-        startIndexStock = startIndexStock + 1
         
       }else{
         let chunkSize = 7
@@ -151,14 +152,15 @@ function App() {
             state: "drawing",
             points,
           }, 50000, meetingSession.audioVideo)
-          startIndexStock = data.startIndex
         }
+        
+        sendMessage("drawing", {
+          state: "end",
+          startIndex: data.startIndex
+        }, 50000, meetingSession.audioVideo)
       }
 
-      sendMessage("drawing", {
-        state: "end",
-        startIndex: data.startIndex
-      }, 50000, meetingSession.audioVideo)
+      
     });
   }, []);
 
