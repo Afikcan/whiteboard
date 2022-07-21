@@ -24,91 +24,141 @@ designer.widgetJsURL = 'https://www.webrtc-experiment.com/Canvas-Designer/widget
 
 designer.appendTo(document.getElementById('whiteboard-frame') || document.documentElement);
 
-
 let drawing = {
   points: [],
   startIndex: 0
 }
 
+let allDrawings = {
+  points: [],
+  startIndex: 0
+}
+
+let startIndexStock = 0
+
+let base64EncodedStr
 
 function App() {
-  
-
   const [meetingResponse, setMeetingResponse] = useState({})
   const [attendeeResponse, setAttendeeResponse] = useState({})
 
 
-  const receiveDataMessageHandler = (data) => {
+  // function for what will we do after we get data by using getMessage
+  const receiveDataMessageHandler = async (data) => {
     data = JSON.parse(new TextDecoder().decode(data.data))
 
     if(data.state === "drawing"){
-      //drawing.points.push(data.point) Pushwant
+      console.log("BEFORE PUSH")
+      console.log(data.points)
       for(let i = 0; i < data.points.length;  i++ ){
         drawing.points.push(data.points[i])
+        
+        allDrawings.points.push(data.points[i])
       }
+    }else if(data.state === "image"){
+
+      fetch(data.link)
+      .then( response => response.blob() )
+      .then( blob =>{
+          var reader = new FileReader() ;
+          reader.onload = function(){
+            base64EncodedStr = this.result
+            const array_location = [base64EncodedStr]
+            
+            for(let i = 0; i<data.location.length; i++){
+              array_location.push(data.location[i])
+            }
+
+            // to create exact same form with we normally use
+            const array = []
+            array.push(data.state)
+            array.push(array_location)
+            array.push(data.configs)
+          
+            allDrawings.points.push(array)
+
+            console.log("TOTALLY SAME DATA STRUCTURE")
+            console.log(allDrawings)
+            };
+          reader.readAsDataURL(blob);
+      }).catch(err => {})
+      
     }else if(data.state === "end"){
+
+      console.log("TOTALLY SAME DATA STRUCTURE")
+      console.log(allDrawings)
+
       drawing.startIndex = data.startIndex
+
       designer.syncData(drawing)
       drawing.points = []
     }
+    
   }
 
+  // function for sending data chunks to subscribed users to the topic
   const sendMessage = (topic, data, lifetimeMs, audioVideo) => {
     audioVideo.realtimeSendDataMessage(topic, data, lifetimeMs)
   }
 
+  // function for to subscribe to any topic
   const getMessage = (topic, audioVideo) => {
     try {
       audioVideo.realtimeSubscribeToReceiveDataMessage(topic, receiveDataMessageHandler)
-    } catch (error) {
-      console.log("error")
+    } catch (err) {
+      console.log(err)
     }
+  }
+
+  function delay(time) {
+    return new Promise(resolve => setTimeout(resolve, time));
   }
 
   useEffect(() => {
     designer.addSyncListener(function (data) {
+      if(data.points[data.points.length-1][0] === "image" || data.points[data.points.length-1][0] === "pdf"){
 
-      /*
-      if(data.points[data.points.length-1][0] === "image" || "pdf"){
-        //let state = console.log(data.points[data.points.length-1][0])
-        console.log(data.points[data.points.length-1])
-        /*
-        sendMessage(state, {
-          state,
-          points: data.points[data.points.length-1], //for images we just wanna send last point 
-        }, 50000, meetingSession.audioVideo)
         
-      }
-      */
-      
-      let chunkSize = 7
-      let chunkNum = Math.ceil(data.points.length/chunkSize) 
 
-      for(let i = 0; i < chunkNum; i++){
-        let points = data.points.splice(0,chunkSize)
-        sendMessage("drawing", {
-          state: "drawing",
-          points,
-        }, 50000, meetingSession.audioVideo)
+        
+        // I send my data img to backend to upload it my S3bucket
+        socket.emit("sendFile", data.points[data.points.length-1][1][0])
+
+        // I get the link of the img that i sent before and i'm sending it to other users to use it
+        socket.on("sendLinkImage", (link) => {
+          sendMessage("drawing", {
+            state: "image",
+            link,
+            location: data.points[data.points.length-1][1].splice(1,6),
+            configs: data.points[data.points.length-1][2]
+          }, 50000, meetingSession.audioVideo)
+        })
+        data.startIndex = startIndexStock
+        startIndexStock = startIndexStock + 1
+        
+      }else{
+        let chunkSize = 7
+        let chunkNum = Math.ceil(data.points.length/chunkSize) 
+
+        for(let i = 0; i < chunkNum; i++){
+          let points = data.points.splice(0,chunkSize)
+
+          for(let i = 0; i < points.length;  i++ ){
+            allDrawings.points.push(points[i])
+          }
+
+          sendMessage("drawing", {
+            state: "drawing",
+            points,
+          }, 50000, meetingSession.audioVideo)
+          startIndexStock = data.startIndex
+        }
       }
+
       sendMessage("drawing", {
         state: "end",
         startIndex: data.startIndex
       }, 50000, meetingSession.audioVideo)
-      
-      /*
-      Pushwant
-      data.points.forEach(d=>{
-        sendMessage("drawing", {
-          state: "drawing",
-          point: d
-        }, 50000, meetingSession.audioVideo)
-      });
-      sendMessage("drawing", {
-        state: "end",
-        startIndex: data.startIndex
-      }, 50000, meetingSession.audioVideo)
-      */
     });
   }, []);
 
@@ -122,8 +172,6 @@ function App() {
   })
 
   let main = async () => {
-    console.log("After we got in main")
-    console.log(attendeeResponse)
 
     logger = new ConsoleLogger('MyLogger', LogLevel.INFO);
 
@@ -137,9 +185,6 @@ function App() {
       logger,
       deviceController
     );
-    console.log("MEETINGSESSION")
-    console.log(typeof (meetingSession.audioVideo))
-    console.log(meetingSession.audioVideo)
 
     observer = {
       audioVideoDidStart: () => {
@@ -158,10 +203,8 @@ function App() {
     };
 
     meetingSession.audioVideo.addObserver(observer);
-    await meetingSession.audioVideo.start();
+    meetingSession.audioVideo.start();
   }
-
-
 
   return (
     <div className="App">

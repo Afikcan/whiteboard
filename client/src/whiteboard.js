@@ -1,6 +1,3 @@
-const sendMessage = (topic, data, lifetimeMs, audioVideo) => {
-    audioVideo.realtimeSendDataMessage(topic, data, lifetimeMs)
-  }
 // _______________
 // Canvas-Designer
 
@@ -66,6 +63,9 @@ export default function CanvasDesigner() {
 
     function syncData(data) {
         if (!designer.iframe) return;
+
+        //console.log("RECEIVER"); console.log(data)
+
         designer.postMessage({
             canvasDesignerSyncData: data
         });
@@ -77,6 +77,10 @@ export default function CanvasDesigner() {
 
     function onMessage(event) {
         if (!!event.data.canvasDesignerSyncData) {
+
+            console.log("SENDER")
+            console.log(event.data.canvasDesignerSyncData)
+            
             designer.pointsLength = event.data.canvasDesignerSyncData.points.length;
             syncDataListener(event.data.canvasDesignerSyncData);
             return;

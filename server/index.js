@@ -2,10 +2,13 @@ const express = require('express')
 const http = require('http')
 const { Server } = require('socket.io')
 const cors = require('cors')
+const url = require('url')
+const fetch = require('node-fetch')
 
 const { v4: uuid } = require('uuid');
 const AWS = require('aws-sdk');
 
+const s3 = new AWS.S3({ region: 'eu-west-3'})
 
 const chime = new AWS.Chime({ region: 'us-east-1' });
 chime.endpoint = new AWS.Endpoint('https://service.chime.aws.amazon.com');
@@ -58,6 +61,46 @@ io.on('connection', (socket) => {
     console.log('User connected: ' + socket.id)
 
     socket.emit("sendConfigs", configs)
+
+    socket.on("sendFile", (data) => {
+        data = data.slice(5,data.length)
+        let img_data
+        let control = true
+        let index = 0
+        let ContentType
+        let fileName
+        
+        while(control){
+            if(data[index] === ";"){
+                ContentType = data.slice(0,index)
+            }else if(data[index] === ","){
+                img_data = data.slice(index+1,data.length)
+                fileName = Date.now() + ".png"
+                control = false
+            }
+            index++
+        }
+
+        var bufferValue = Buffer.from(img_data,"base64");
+
+        var params_putObject = {
+            Body: bufferValue, 
+            Bucket: "whiteboard-storage-afyque",
+            Key: fileName,
+            ContentType,
+            ACL: "public-read"
+        };
+
+        s3.putObject(params_putObject , function(err, data) {
+            if (err) console.log(err, err.stack);
+            else {
+                console.log(data)
+                socket.emit("sendLinkImage","https://whiteboard-storage-afyque.s3.eu-west-3.amazonaws.com/"+fileName)
+            };
+        });
+
+        
+    })
 })
 
 server.listen(3001, () => {
