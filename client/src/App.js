@@ -29,13 +29,6 @@ let drawing = {
   startIndex: 0
 }
 
-let allDrawings = {
-  points: [],
-  startIndex: 0
-}
-
-let base64EncodedStr
-
 function App() {
   const [meetingResponse, setMeetingResponse] = useState({})
   const [attendeeResponse, setAttendeeResponse] = useState({})
@@ -46,60 +39,23 @@ function App() {
     data = JSON.parse(new TextDecoder().decode(data.data))
 
     if(data.state === "drawing"){
-      console.log("BEFORE PUSH")
-      console.log(data.points)
       for(let i = 0; i < data.points.length;  i++ ){
         drawing.points.push(data.points[i])
-        
-        allDrawings.points.push(data.points[i])
       }
     }else if(data.state === "end"){
-
-      console.log("TOTALLY SAME DATA STRUCTURE")
-      console.log(allDrawings)
-
       drawing.startIndex = data.startIndex
-      allDrawings.startIndex = drawing.startIndex
-
       designer.syncData(drawing)
       drawing.points = []
     }
 
     if(data.state === "image"){
+      async function loadImages() {
+        const response = await fetch(data.link);
+        const allDrawings = await response.json();
 
-      fetch(data.link)
-      .then( response => response.blob() )
-      .then( blob =>{
-          var reader = new FileReader() ;
-          reader.onload = function(){
-            base64EncodedStr = this.result
-            const array_location = [base64EncodedStr]
-            
-            for(let i = 0; i<data.location.length; i++){
-              array_location.push(data.location[i])
-            }
-
-            // to create exact same form with we normally use
-            const array = []
-            array.push(data.state)
-            array.push(array_location)
-            array.push(data.configs)
-
-
-            if(allDrawings.startIndex === data.startIndex){
-              console.log("DUDE, THEY HAVE SAME STARTINDEX!!!")
-              allDrawings.points[allDrawings.points.length-1] = array
-            }else{
-              allDrawings.points.push(array)
-              allDrawings.startIndex = data.startIndex
-            }
-            designer.syncData(allDrawings)
-
-            //allDrawings.startIndex = allDrawings.startIndex + 1
-            };
-          reader.readAsDataURL(blob);
-      }).catch(err => {})
-      
+        designer.syncData(allDrawings)
+      }
+      loadImages();
     }
     
   }
@@ -120,20 +76,13 @@ function App() {
 
   useEffect(() => {
     designer.addSyncListener(function (data) {
-
       if(data.points[data.points.length-1][0] === "image" || data.points[data.points.length-1][0] === "pdf"){
-        
-        // I send my data img to backend to upload it my S3bucket
-        socket.emit("sendFile", data.points[data.points.length-1][1][0])
+        socket.emit("sendAllDrawings", JSON.stringify(data))
 
-        // I get the link of the img that i sent before and i'm sending it to other users to use it
-        socket.on("sendLinkImage", (link) => {
+        socket.on("sendLinkImages", (link) => {
           sendMessage("drawing", {
             state: "image",
-            link,
-            location: data.points[data.points.length-1][1].splice(1,6),
-            configs: data.points[data.points.length-1][2],
-            startIndex: data.points.length - 1
+            link
           }, 50000, meetingSession.audioVideo)
         })
         
@@ -144,9 +93,7 @@ function App() {
         for(let i = 0; i < chunkNum; i++){
           let points = data.points.splice(0,chunkSize)
 
-          for(let i = 0; i < points.length;  i++ ){
-            allDrawings.points.push(points[i])
-          }
+        
 
           sendMessage("drawing", {
             state: "drawing",

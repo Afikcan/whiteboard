@@ -62,6 +62,28 @@ io.on('connection', (socket) => {
 
     socket.emit("sendConfigs", configs)
 
+    socket.on("sendAllDrawings", (allDrawings) => {
+        let fileName = "room-1.json"
+        var params_putObject = {
+            Body: allDrawings, 
+            Bucket: "whiteboard-storage-afyque",
+            Key: fileName,
+            ContentType: "application/json",
+            ACL: "public-read"
+        };
+        console.log(typeof(allDrawings))
+        
+        s3.putObject(params_putObject , function(err, data) {
+            if (err) console.log(err, err.stack);
+            else {
+                console.log(data)
+                socket.emit("sendLinkImages","https://whiteboard-storage-afyque.s3.eu-west-3.amazonaws.com/"+fileName)
+            };
+        });
+        
+    })
+
+    /*
     socket.on("sendFile", (data) => {
         data = data.slice(5,data.length)
         let img_data
@@ -101,6 +123,7 @@ io.on('connection', (socket) => {
 
         
     })
+    */
 })
 
 server.listen(3001, () => {
