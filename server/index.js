@@ -80,7 +80,64 @@ io.on('connection', (socket) => {
                 socket.emit("sendLinkImages","https://whiteboard-storage-afyque.s3.eu-west-3.amazonaws.com/"+fileName)
             };
         });
+    })
+    
+    socket.on("screenShot",(ssData) => {
+        let ssNumber = 0
+
+        var params_listObjects = {
+            Bucket: "whiteboard-storage-afyque", 
+        };
+
+        s3.listObjects(params_listObjects, function(err, data) {
+        let lettreNo = ssData.eventName.length
+            if (err) console.log(err, err.stack); // an error occurred
+            else{
+            for(let i = 0; i<data.Contents.length; i++){
+                if(data.Contents[i].Key.slice(0,lettreNo) === ssData.eventName ){
+                    ssNumber = ssNumber + 1
+                    console.log(ssNumber)
+                }
+            }
+            }
+        });
+
+        var params_putObject = {
+            Body: ssData.img, 
+            Bucket: "whiteboard-storage-afyque/" + ssData.eventName,
+            Key: "ss-" + ssNumber + ".txt",
+            ContentType: "string",
+            ACL: "public-read"
+        };
+
+        console.log(ssNumber)
+        console.log(params_putObject.Key)
         
+        s3.putObject(params_putObject , function(err, data) {
+            if (err) console.log(err, err.stack);
+            else {
+                console.log(data)
+            };
+        });
+    })
+    
+    socket.on("savedFiles", (roomName) => {
+        var params_listObjects = {
+            Bucket: "whiteboard-storage-afyque", 
+        };
+        s3.listObjects(params_listObjects, function(err, data) {
+        let lettreNo = roomName.length
+        let files = []
+            if (err) console.log(err, err.stack); // an error occurred
+            else{
+            for(let i = 0; i<data.Contents.length; i++){
+                if(data.Contents[i].Key.slice(0,lettreNo) === roomName ){
+                    files.push(data.Contents[i].Key.slice(lettreNo,data.Contents[i].Key.length))
+                }
+            }
+            socket.emit("savedFilesArray",files)
+            }
+        });
     })
 })
 

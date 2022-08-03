@@ -29,10 +29,14 @@ let drawing = {
   startIndex: 0
 }
 
+const displaySavedImage =  async (link) => {
+  var response = await fetch(link)
+  console.log(response)
+}
+
 function App() {
   const [meetingResponse, setMeetingResponse] = useState({})
   const [attendeeResponse, setAttendeeResponse] = useState({})
-
 
   // function for what will we do after we get data by using getMessage
   const receiveDataMessageHandler = async (data) => {
@@ -57,7 +61,6 @@ function App() {
       }
       loadImages();
     }
-    
   }
 
   // function for sending data chunks to subscribed users to the topic
@@ -93,31 +96,36 @@ function App() {
         for(let i = 0; i < chunkNum; i++){
           let points = data.points.splice(0,chunkSize)
 
-        
-
           sendMessage("drawing", {
             state: "drawing",
             points,
           }, 50000, meetingSession.audioVideo)
         }
-        
         sendMessage("drawing", {
           state: "end",
           startIndex: data.startIndex
         }, 50000, meetingSession.audioVideo)
       }
-
-      
     });
   }, []);
 
 
   useEffect(() => {
+    socket.emit("savedFiles", "room-1/")
+    socket.on("savedFilesArray", (files) => {
+      var options = "<option value='0'>SELECT</option>"
+      for(var i = 0; i<files.length; i++){
+        options += "<option value='"+files[i]+"'>"+files[i]+"</option>"
+      }
+      document.getElementById("slctImg").innerHTML = options
+    }, [])
+    
     socket.on("sendConfigs", (data) => {
       setAttendeeResponse(data.attendeeResponse)
       setMeetingResponse(data.meetingResponse)
     })
     main()
+    
   })
 
   let main = async () => {
@@ -164,6 +172,29 @@ function App() {
       <button onClick={() => {
         getMessage("drawing", meetingSession.audioVideo)
       }}>GET A MESSAGE</button>
+      <button onClick={() => {
+        designer.undo()
+      }}>UNDO</button>
+      <button onClick={() => {
+        designer.toDataURL("img",(data) => {
+          data = {
+            img: data,
+            eventName: "room-1"
+          }
+          console.log(data)
+          socket.emit("screenShot",data)
+        })
+      }}>SCREEN SHOT</button>
+      
+      <select id='slctImg' onChange={()=>{
+        var data = {
+          state: "image",
+          link: "https://whiteboard-storage-afyque.s3.eu-west-3.amazonaws.com/room-1/" + document.getElementById("slctImg").value
+        }
+        displaySavedImage(data.link)
+      }}>
+      </select>
+      
     </div>
   );
 }

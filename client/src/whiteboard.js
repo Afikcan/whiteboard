@@ -1,6 +1,8 @@
 // _______________
 // Canvas-Designer
 
+import { ConsoleLogger } from "amazon-chime-sdk-js";
+
 // Open-Sourced: https://github.com/muaz-khan/Canvas-Designer
 
 // --------------------------------------------------
@@ -75,7 +77,12 @@ export default function CanvasDesigner() {
     function onMessage(event) {
         if (!!event.data.canvasDesignerSyncData) {
             designer.pointsLength = event.data.canvasDesignerSyncData.points.length;
+            console.log(event.data.canvasDesignerSyncData)
             syncDataListener(event.data.canvasDesignerSyncData);
+            return;
+        }
+        if (!!event.data.dataURL) {
+            dataURLListener(event.data.dataURL);
             return;
         }
     }
@@ -155,6 +162,14 @@ export default function CanvasDesigner() {
         if (!designer.iframe) return;
         designer.postMessage({
             syncPoints: true
+        });
+    };
+
+    designer.screenshot = function() {
+        if (!designer.iframe) return;
+        designer.postMessage({
+            syncPoints: true,
+            screenshot: true
         });
     };
 
