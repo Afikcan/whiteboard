@@ -34,7 +34,7 @@ const displaySavedImage =  async (link) => {
   .then(res => res.blob())
   .then(blob =>blob.text())
   .then(res => {
-    
+    //designer.postMessage(res)
   })
 }
 
@@ -180,10 +180,11 @@ function App() {
         designer.undo()
       }}>UNDO</button>
       <button onClick={() => {
-        designer.toDataURL("img",(data) => {
-          data = {
-            img: data,
-            eventName: "room-1"
+        designer.toDataURL("img",(url) => {
+          var data = {
+            src: url,
+            eventName: "room-1",
+            fileName: "image-1"
           }
           socket.emit("screenShot",data)
         })

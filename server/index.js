@@ -71,7 +71,6 @@ io.on('connection', (socket) => {
             ContentType: "application/json",
             ACL: "public-read"
         };
-        console.log(typeof(allDrawings))
         
         s3.putObject(params_putObject , function(err, data) {
             if (err) console.log(err, err.stack);
@@ -84,13 +83,14 @@ io.on('connection', (socket) => {
     
     socket.on("screenShot",(ssData) => {
         var screenShot = async () => {
-            let fileNumber = 0
+            var buffer = Buffer.from(ssData.src.replace(/^data:image\/\w+;base64,/, ""),'base64')
 
             var params_putObject = {
-                Body: ssData.img, 
+                Body: buffer, 
                 Bucket: "whiteboard-storage-afyque/" + ssData.eventName,
-                Key: "ss-" + fileNumber + ".txt",
-                ContentType: "string",
+                Key: ssData.fileName + ".jpg",
+                ContentEncoding: 'base64',
+                ContentType: 'image/jpeg',
                 ACL: "public-read"
             };
             
@@ -100,6 +100,7 @@ io.on('connection', (socket) => {
                     console.log(data)
                 };
             });
+            
         }
         screenShot()
     })

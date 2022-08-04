@@ -74,10 +74,10 @@ export default function CanvasDesigner() {
     var dataURLListener = function(dataURL) {};
     var captureStreamCallback = function() {};
 
-    function onMessage(event) {
+    function onMessage(event) { 
+        //console.log(event.data.canvasDesignerSyncData)
         if (!!event.data.canvasDesignerSyncData) {
             designer.pointsLength = event.data.canvasDesignerSyncData.points.length;
-            console.log(event.data.canvasDesignerSyncData)
             syncDataListener(event.data.canvasDesignerSyncData);
             return;
         }
