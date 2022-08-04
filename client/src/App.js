@@ -30,8 +30,12 @@ let drawing = {
 }
 
 const displaySavedImage =  async (link) => {
-  var response = await fetch(link)
-  console.log(response)
+  await fetch(link)
+  .then(res => res.blob())
+  .then(blob =>blob.text())
+  .then(res => {
+    
+  })
 }
 
 function App() {
@@ -181,7 +185,6 @@ function App() {
             img: data,
             eventName: "room-1"
           }
-          console.log(data)
           socket.emit("screenShot",data)
         })
       }}>SCREEN SHOT</button>

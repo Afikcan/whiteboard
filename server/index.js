@@ -83,42 +83,25 @@ io.on('connection', (socket) => {
     })
     
     socket.on("screenShot",(ssData) => {
-        let ssNumber = 0
+        var screenShot = async () => {
+            let fileNumber = 0
 
-        var params_listObjects = {
-            Bucket: "whiteboard-storage-afyque", 
-        };
-
-        s3.listObjects(params_listObjects, function(err, data) {
-        let lettreNo = ssData.eventName.length
-            if (err) console.log(err, err.stack); // an error occurred
-            else{
-            for(let i = 0; i<data.Contents.length; i++){
-                if(data.Contents[i].Key.slice(0,lettreNo) === ssData.eventName ){
-                    ssNumber = ssNumber + 1
-                    console.log(ssNumber)
-                }
-            }
-            }
-        });
-
-        var params_putObject = {
-            Body: ssData.img, 
-            Bucket: "whiteboard-storage-afyque/" + ssData.eventName,
-            Key: "ss-" + ssNumber + ".txt",
-            ContentType: "string",
-            ACL: "public-read"
-        };
-
-        console.log(ssNumber)
-        console.log(params_putObject.Key)
-        
-        s3.putObject(params_putObject , function(err, data) {
-            if (err) console.log(err, err.stack);
-            else {
-                console.log(data)
+            var params_putObject = {
+                Body: ssData.img, 
+                Bucket: "whiteboard-storage-afyque/" + ssData.eventName,
+                Key: "ss-" + fileNumber + ".txt",
+                ContentType: "string",
+                ACL: "public-read"
             };
-        });
+            
+            s3.putObject(params_putObject , function(err, data) {
+                if (err) console.log(err, err.stack);
+                else {
+                    console.log(data)
+                };
+            });
+        }
+        screenShot()
     })
     
     socket.on("savedFiles", (roomName) => {
