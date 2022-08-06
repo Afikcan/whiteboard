@@ -33,7 +33,8 @@ export default function CanvasDesigner() {
         lineWidth: true,
         colorsPicker: true,
         extraOptions: true,
-        code: true
+        code: true,
+        undo: true
     };
 
     designer.icons = {
@@ -58,13 +59,16 @@ export default function CanvasDesigner() {
         lineWidth: null,
         colorsPicker: null,
         extraOptions: null,
-        code: null
+        code: null,
+        undo: null
     };
 
     var selectedIcon = 'pencil';
 
     function syncData(data) {
         if (!designer.iframe) return;
+        console.log("Data to sync")
+        console.log(data)
         designer.postMessage({
             canvasDesignerSyncData: data
         });
@@ -75,7 +79,7 @@ export default function CanvasDesigner() {
     var captureStreamCallback = function() {};
 
     function onMessage(event) { 
-        //console.log(event.data.canvasDesignerSyncData)
+        console.log(event.data.canvasDesignerSyncData)
         if (!!event.data.canvasDesignerSyncData) {
             designer.pointsLength = event.data.canvasDesignerSyncData.points.length;
             syncDataListener(event.data.canvasDesignerSyncData);
@@ -165,14 +169,6 @@ export default function CanvasDesigner() {
         });
     };
 
-    designer.screenshot = function() {
-        if (!designer.iframe) return;
-        designer.postMessage({
-            syncPoints: true,
-            screenshot: true
-        });
-    };
-
     designer.pointsLength = 0;
 
     designer.undo = function(index) {
@@ -223,6 +219,10 @@ export default function CanvasDesigner() {
             renderStream: true
         });
     };
+
+    designer.takeScreenshot = function(data) {
+
+    }
 
     designer.widgetHtmlURL = 'widget.html';
     designer.widgetJsURL = 'widget.min.js';

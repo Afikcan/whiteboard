@@ -29,10 +29,14 @@
   </head>
   <body style="height: 800px;">
     <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root">
-      
-    </div>
+    
+    <button id="pop-wb" onclick="myFunction()">
+
+    </button>
     <div id="whiteboard-frame">
+      <div id="root">
+      
+      </div>
 
     </div>
     <!--
@@ -47,5 +51,15 @@
       
     <script src="./whiteboard.js"></script>
     -->
+    <script>
+      function myFunction() {
+        var x = document.getElementById("whiteboard-frame");
+        if (x.style.display === "none") {
+          x.style.display = "block";
+        } else {
+          x.style.display = "none";
+        }
+      } 
+    </script>
   </body>
 </html>

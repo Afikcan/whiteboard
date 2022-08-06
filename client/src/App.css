@@ -42,3 +42,13 @@ div#whiteboard-frame {
   width: 100%;
   border: 2px solid black;
 }
+
+button#pop-wb {
+  background: url(../public/whiteboard.png) no-repeat;
+  cursor:pointer;
+  border: none;
+  background-size: cover;
+  width: 2.2rem;
+  height: 1.6rem;
+}
+

@@ -10,6 +10,7 @@ import {
   MeetingSessionConfiguration
 } from 'amazon-chime-sdk-js';
 
+
 let logger
 let deviceController
 let configuration
@@ -29,12 +30,28 @@ let drawing = {
   startIndex: 0
 }
 
+
+//Displaying ss we took and stored in s3. Stored data is in base64 format.
 const displaySavedImage =  async (link) => {
   await fetch(link)
   .then(res => res.blob())
   .then(blob =>blob.text())
   .then(res => {
-    //designer.postMessage(res)
+    const array = []
+    const array1 = [res, 100, 100, 796, 423, 0]
+    const array2 = [2, '#6c96c8', 'rgba(0,0,0,0)', 1, 'source-over', 'round', 'round', '15px "Arial"']
+    array.push("image")
+    array.push(array1)
+    array.push(array2)
+    var points = [array]
+    var data = {
+      points,
+      startIndex: 0
+    }
+
+    designer.syncData(data)
+
+    points = []
   })
 }
 
@@ -115,6 +132,7 @@ function App() {
 
 
   useEffect(() => {
+    
     socket.emit("savedFiles", "room-1/")
     socket.on("savedFilesArray", (files) => {
       var options = "<option value='0'>SELECT</option>"
@@ -122,18 +140,16 @@ function App() {
         options += "<option value='"+files[i]+"'>"+files[i]+"</option>"
       }
       document.getElementById("slctImg").innerHTML = options
-    }, [])
+    })
     
     socket.on("sendConfigs", (data) => {
       setAttendeeResponse(data.attendeeResponse)
       setMeetingResponse(data.meetingResponse)
     })
     main()
-    
   })
 
   let main = async () => {
-
     logger = new ConsoleLogger('MyLogger', LogLevel.INFO);
 
     deviceController = new DefaultDeviceController(logger);
@@ -176,20 +192,24 @@ function App() {
       <button onClick={() => {
         getMessage("drawing", meetingSession.audioVideo)
       }}>GET A MESSAGE</button>
-      <button onClick={() => {
-        designer.undo()
-      }}>UNDO</button>
+      
+      <a style={{display: 'none' }} id="downlink" download="ShareLook Screeshot.png" >Download</a>
       <button onClick={() => {
         designer.toDataURL("img",(url) => {
+          var link = document.getElementById("downlink")
+          link.setAttribute("href", url)
+          link.click()
+          
+          /*
           var data = {
             src: url,
             eventName: "room-1",
             fileName: "image-1"
           }
           socket.emit("screenShot",data)
+          */
         })
       }}>SCREEN SHOT</button>
-      
       <select id='slctImg' onChange={()=>{
         var data = {
           state: "image",

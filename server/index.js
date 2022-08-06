@@ -81,8 +81,12 @@ io.on('connection', (socket) => {
         });
     })
     
+    //Store our screenshots in s3 bucket. One in base64/string format, one in image/jpeg
     socket.on("screenShot",(ssData) => {
         var screenShot = async () => {
+            
+            /*
+            //Having selected screenshot in format jpeg
             var buffer = Buffer.from(ssData.src.replace(/^data:image\/\w+;base64,/, ""),'base64')
 
             var params_putObject = {
@@ -93,6 +97,17 @@ io.on('connection', (socket) => {
                 ContentType: 'image/jpeg',
                 ACL: "public-read"
             };
+            */
+
+            //Having selected screenshot in format string/base64
+            var params_putObject = {
+                Body: ssData.src, 
+                Bucket: "whiteboard-storage-afyque/" + ssData.eventName,
+                Key: ssData.fileName + ".txt",
+                ContentType: 'string',
+                ACL: "public-read"
+            };
+            
             
             s3.putObject(params_putObject , function(err, data) {
                 if (err) console.log(err, err.stack);
@@ -105,6 +120,7 @@ io.on('connection', (socket) => {
         screenShot()
     })
     
+    //Display names of ss we took and stored in s3.
     socket.on("savedFiles", (roomName) => {
         var params_listObjects = {
             Bucket: "whiteboard-storage-afyque", 
